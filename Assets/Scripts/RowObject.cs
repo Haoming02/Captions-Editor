@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-public class RowStruct : MonoBehaviour
+public class RowObject : MonoBehaviour
 {
     private string Caption;
     private int[] Index;
@@ -19,7 +19,7 @@ public class RowStruct : MonoBehaviour
 
     public void DeleteTag()
     {
-        MainControl.Instance.ToggleDeleteTag(Caption, ref Index);
+        MainControl.Instance.ToggleDeleteTag(Caption);
 
         if (cachedIndex == -1)
         {
@@ -44,6 +44,14 @@ public class RowStruct : MonoBehaviour
         }
 
         return false;
+    }
+
+    public int[] Filter(string filter, bool fuzzy)
+    {
+        if (fuzzy ? Caption.Contains(filter) : Caption == filter)
+            return Index;
+        else
+            return new int[] { };
     }
 
     public bool Filter(string[] filters, bool fuzzy, bool isAnd)
