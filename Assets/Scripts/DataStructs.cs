@@ -11,14 +11,16 @@ public partial class MainControl : MonoBehaviour
     public static Color Green => new Color32(200, 255, 200, 255);
 
     private string[] captionFiles;
-    private List<string>[] captions;
+    private Dictionary<string, List<int>> folderMap;
 
     private int[] filteredFiles;
 
-    private List<int> currentlyEditing;
-    private List<int> currentlyFiltering;
-
+    private List<int> currentFolders;
+    private List<int> currentFiles;
+    private List<int> currentFilters;
     private List<string> captionsToDelete;
+
+    private List<string>[] captions;
     private Dictionary<string, List<int>> captionMap;
 
     private List<GameObject> captionRows;

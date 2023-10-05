@@ -7,13 +7,13 @@ public class RowObject : MonoBehaviour
     private string Caption;
     private int[] Index;
 
-    private int cachedIndex;
+    private int cachedScrollRectOrder;
 
     public void Init(string tag, int[] index)
     {
         Caption = tag;
         Index = index;
-        cachedIndex = -1;
+        cachedScrollRectOrder = -1;
 
         transform.GetChild(0).GetComponent<Text>().text = $"{Caption}: {Index.Length}";
     }
@@ -22,16 +22,16 @@ public class RowObject : MonoBehaviour
     {
         MainControl.Instance.ToggleDeleteTag(Caption);
 
-        if (cachedIndex == -1)
+        if (cachedScrollRectOrder == -1)
         {
-            cachedIndex = transform.GetSiblingIndex();
+            cachedScrollRectOrder = transform.GetSiblingIndex();
             transform.SetAsLastSibling();
             transform.GetComponent<Image>().color = MainControl.Pink;
         }
         else
         {
-            transform.SetSiblingIndex(cachedIndex);
-            cachedIndex = -1;
+            transform.SetSiblingIndex(cachedScrollRectOrder);
+            cachedScrollRectOrder = -1;
             transform.GetComponent<Image>().color = MainControl.White;
         }
     }

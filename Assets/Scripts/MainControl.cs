@@ -8,15 +8,18 @@ using UnityEngine.UI;
 public partial class MainControl : MonoBehaviour
 {
     private string Extension(string ext) => (ext[0] == '.') ? ext : $".{ext}";
+    private string Folder(string file) => Path.GetDirectoryName(file);
 
     void Start()
     {
+        SaveButton.interactable = false;
         toolsContent.SetActive(false);
     }
 
     private void OnFilesLoaded()
     {
         LoadButton.interactable = false;
+        SaveButton.interactable = true;
         toolsContent.SetActive(true);
     }
 
@@ -27,16 +30,39 @@ public partial class MainControl : MonoBehaviour
             list.Add(i);
     }
 
-    private void ToggleVisibility()
+    private async void ToggleVisibility()
     {
         for (int i = 0; i < captionCount; i++)
-            captionRows[i].SetActive(currentlyEditing.Contains(i) && currentlyFiltering.Contains(i));
+            captionRows[i].SetActive(currentFolders.Contains(i) && currentFiles.Contains(i) && currentFilters.Contains(i));
+
+        await Task.Delay(1);
+
+        Scroll2Top();
+    }
+
+    public void FilterByFolder(string filter)
+    {
+        if (filter.Trim() == string.Empty)
+            RestoreAll(ref currentFolders);
+        else
+        {
+            foreach (var folder in folderMap.Keys)
+            {
+                if (folder.ToLower().Contains(filter.ToLower()))
+                {
+                    currentFolders = folderMap[folder];
+                    break;
+                }
+            }
+        }
+
+        ToggleVisibility();
     }
 
     public void FilterByFile(string filter)
     {
         if (filter.Trim() == string.Empty)
-            RestoreAll(ref currentlyEditing);
+            RestoreAll(ref currentFiles);
         else
         {
             string[] filters = filter.Split(',').Select(t => t.Trim()).ToArray();
@@ -51,7 +77,7 @@ public partial class MainControl : MonoBehaviour
 
             if (allOccurances.Count == 0)
             {
-                RestoreAll(ref currentlyEditing);
+                RestoreAll(ref currentFiles);
             }
             else
             {
@@ -64,13 +90,13 @@ public partial class MainControl : MonoBehaviour
                 {
                     if (captionRows[i].GetComponent<RowObject>().Filter(filteredFiles))
                     {
-                        if (!currentlyEditing.Contains(i))
-                            currentlyEditing.Add(i);
+                        if (!currentFiles.Contains(i))
+                            currentFiles.Add(i);
                     }
                     else
                     {
-                        if (currentlyEditing.Contains(i))
-                            currentlyEditing.Remove(i);
+                        if (currentFiles.Contains(i))
+                            currentFiles.Remove(i);
                     }
                 }
             }
@@ -82,7 +108,7 @@ public partial class MainControl : MonoBehaviour
     public void FilterByCaption(string filter)
     {
         if (filter.Trim() == string.Empty)
-            RestoreAll(ref currentlyFiltering);
+            RestoreAll(ref currentFilters);
         else
         {
             string[] filters = filter.Split(',').Select(t => t.Trim()).ToArray();
@@ -91,13 +117,13 @@ public partial class MainControl : MonoBehaviour
             {
                 if (captionRows[i].GetComponent<RowObject>().Filter(filters, cptFuzzy.isOn, cptIsAnd.isOn))
                 {
-                    if (!currentlyFiltering.Contains(i))
-                        currentlyFiltering.Add(i);
+                    if (!currentFilters.Contains(i))
+                        currentFilters.Add(i);
                 }
                 else
                 {
-                    if (currentlyFiltering.Contains(i))
-                        currentlyFiltering.Remove(i);
+                    if (currentFilters.Contains(i))
+                        currentFilters.Remove(i);
                 }
             }
         }
@@ -126,6 +152,9 @@ public partial class MainControl : MonoBehaviour
         {
             captionFiles = Directory.GetFiles(FilePath.text, $"*{Extension(FileExtension.text)}", SearchOption.AllDirectories);
 
+            if (captionFiles.Length == 0)
+                throw new FileNotFoundException();
+
             FilePath.GetComponent<Image>().color = White;
             return true;
         }
@@ -141,13 +170,23 @@ public partial class MainControl : MonoBehaviour
         await Task.Run(() =>
         {
             fileCount = captionFiles.Length;
-            captions = new List<string>[fileCount];
 
+            folderMap = new Dictionary<string, List<int>>();
+            for (int i = 0; i < fileCount; i++)
+            {
+                if (folderMap.ContainsKey(Folder(captionFiles[i])))
+                    folderMap[Folder(captionFiles[i])].Add(i);
+                else
+                    folderMap[Folder(captionFiles[i])] = new List<int> { i };
+            }
+
+            captions = new List<string>[fileCount];
             captionMap = new Dictionary<string, List<int>>();
             captionsToDelete = new List<string>();
 
-            currentlyEditing = new List<int>();
-            currentlyFiltering = new List<int>();
+            currentFolders = new List<int>();
+            currentFiles = new List<int>();
+            currentFilters = new List<int>();
 
             captionRows = new List<GameObject>();
         }).ConfigureAwait(false);
@@ -200,8 +239,9 @@ public partial class MainControl : MonoBehaviour
 
         for (int i = 0; i < captionCount; i++)
         {
-            currentlyEditing.Add(i);
-            currentlyFiltering.Add(i);
+            currentFolders.Add(i);
+            currentFiles.Add(i);
+            currentFilters.Add(i);
         }
 
         await Task.Delay(1);
