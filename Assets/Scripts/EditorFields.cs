@@ -22,6 +22,8 @@ public partial class MainControl : MonoBehaviour
     private ScrollRect Scroll;
 
     [Header("Tools Panel")]
+    [SerializeField]
+    private GameObject toolsContent;
 
     [Header("File Filter")]
     [SerializeField]

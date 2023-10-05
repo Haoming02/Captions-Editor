@@ -1,3 +1,4 @@
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -35,23 +36,23 @@ public class RowObject : MonoBehaviour
         }
     }
 
-    public bool Filter(int index)
-    {
-        foreach (int i in Index)
-        {
-            if (i == index)
-                return true;
-        }
-
-        return false;
-    }
-
-    public int[] Filter(string filter, bool fuzzy)
+    public bool Filter(string filter, bool fuzzy, out int[] index)
     {
         if (fuzzy ? Caption.Contains(filter) : Caption == filter)
-            return Index;
+        {
+            index = Index;
+            return true;
+        }
         else
-            return new int[] { };
+        {
+            index = null;
+            return false;
+        }
+    }
+
+    public bool Filter(int[] index)
+    {
+        return index.Intersect(Index).Any();
     }
 
     public bool Filter(string[] filters, bool fuzzy, bool isAnd)

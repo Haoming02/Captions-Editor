@@ -9,33 +9,122 @@ public partial class MainControl : MonoBehaviour
 {
     private string Extension(string ext) => (ext[0] == '.') ? ext : $".{ext}";
 
+    void Start()
+    {
+        toolsContent.SetActive(false);
+    }
+
+    private void OnFilesLoaded()
+    {
+        LoadButton.interactable = false;
+        toolsContent.SetActive(true);
+    }
+
+    private void RestoreAll(ref List<int> list)
+    {
+        list.Clear();
+        for (int i = 0; i < captionCount; i++)
+            list.Add(i);
+    }
+
+    private void ToggleVisibility()
+    {
+        for (int i = 0; i < captionCount; i++)
+            captionRows[i].SetActive(currentlyEditing.Contains(i) && currentlyFiltering.Contains(i));
+    }
+
     public void FilterByFile(string filter)
     {
-        string[] filters = filter.Split(',').Select(t => t.Trim()).ToArray();
+        if (filter.Trim() == string.Empty)
+            RestoreAll(ref currentlyEditing);
+        else
+        {
+            string[] filters = filter.Split(',').Select(t => t.Trim()).ToArray();
+            List<int[]> allOccurances = new List<int[]>();
+
+            foreach (string tag in filters)
+            {
+                for (int i = 0; i < captionCount; i++)
+                    if (captionRows[i].GetComponent<RowObject>().Filter(tag, fleFuzzy.isOn, out int[] index))
+                        allOccurances.Add(index);
+            }
+
+            if (allOccurances.Count == 0)
+            {
+                RestoreAll(ref currentlyEditing);
+            }
+            else
+            {
+                if (allOccurances.Count == 1)
+                    filteredFiles = allOccurances[0];
+                else
+                    filteredFiles = (fleIsAnd.isOn ? IntersectFiles(allOccurances) : UnionFiles(allOccurances));
+
+                for (int i = 0; i < captionCount; i++)
+                {
+                    if (captionRows[i].GetComponent<RowObject>().Filter(filteredFiles))
+                    {
+                        if (!currentlyEditing.Contains(i))
+                            currentlyEditing.Add(i);
+                    }
+                    else
+                    {
+                        if (currentlyEditing.Contains(i))
+                            currentlyEditing.Remove(i);
+                    }
+                }
+            }
+        }
+
+        ToggleVisibility();
     }
 
     public void FilterByCaption(string filter)
     {
         if (filter.Trim() == string.Empty)
+            RestoreAll(ref currentlyFiltering);
+        else
         {
-            foreach (var obj in captionRows)
-                obj.SetActive(true);
+            string[] filters = filter.Split(',').Select(t => t.Trim()).ToArray();
 
-            return;
+            for (int i = 0; i < captionCount; i++)
+            {
+                if (captionRows[i].GetComponent<RowObject>().Filter(filters, cptFuzzy.isOn, cptIsAnd.isOn))
+                {
+                    if (!currentlyFiltering.Contains(i))
+                        currentlyFiltering.Add(i);
+                }
+                else
+                {
+                    if (currentlyFiltering.Contains(i))
+                        currentlyFiltering.Remove(i);
+                }
+            }
         }
 
-        string[] filters = filter.Split(',').Select(t => t.Trim()).ToArray();
-
-        foreach (var obj in captionRows)
-            obj.SetActive(obj.GetComponent<RowObject>().Filter(filters, cptFuzzy.isOn, cptIsAnd.isOn));
+        ToggleVisibility();
     }
+
+    private T[] UnionFiles<T>(List<T[]> listOfLists)
+    {
+        return listOfLists.SelectMany(list => list).Distinct().ToArray();
+    }
+
+    private T[] IntersectFiles<T>(List<T[]> listOfLists)
+    {
+        var result = listOfLists[1].Intersect(listOfLists[0]);
+        for (int i = 2; i < listOfLists.Count; i++)
+            result = result.Intersect(listOfLists[i]);
+        return result.ToArray();
+    }
+
+    // === Load ===
 
     private bool ParseFilePath()
     {
         try
         {
             captionFiles = Directory.GetFiles(FilePath.text, $"*{Extension(FileExtension.text)}", SearchOption.AllDirectories);
-            LoadButton.interactable = false;
 
             FilePath.GetComponent<Image>().color = White;
             return true;
@@ -57,7 +146,8 @@ public partial class MainControl : MonoBehaviour
             captionMap = new Dictionary<string, List<int>>();
             captionsToDelete = new List<string>();
 
-            currentEditFiles = new List<int>();
+            currentlyEditing = new List<int>();
+            currentlyFiltering = new List<int>();
 
             captionRows = new List<GameObject>();
         }).ConfigureAwait(false);
@@ -95,8 +185,6 @@ public partial class MainControl : MonoBehaviour
                     else
                         captionMap[tag] = new List<int> { i };
                 }
-
-                currentEditFiles.Add(i);
             }
         }).ConfigureAwait(false);
     }
@@ -110,8 +198,17 @@ public partial class MainControl : MonoBehaviour
             captionRows.Add(row);
         }
 
+        for (int i = 0; i < captionCount; i++)
+        {
+            currentlyEditing.Add(i);
+            currentlyFiltering.Add(i);
+        }
+
         await Task.Delay(1);
     }
+
+    // === Load ===
+    // === Save ===
 
     private async Task DeleteCaptions()
     {
@@ -134,4 +231,6 @@ public partial class MainControl : MonoBehaviour
 
         await Task.WhenAll(writeTasks);
     }
+
+    // === Save ===
 }

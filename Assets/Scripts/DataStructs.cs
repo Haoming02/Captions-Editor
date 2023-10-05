@@ -13,11 +13,16 @@ public partial class MainControl : MonoBehaviour
     private string[] captionFiles;
     private List<string>[] captions;
 
-    private List<int> currentEditFiles;
-    private List<GameObject> captionRows;
-    private List<string> captionsToDelete;
+    private int[] filteredFiles;
 
+    private List<int> currentlyEditing;
+    private List<int> currentlyFiltering;
+
+    private List<string> captionsToDelete;
     private Dictionary<string, List<int>> captionMap;
 
+    private List<GameObject> captionRows;
+
     private int fileCount;
+    private int captionCount => captionMap.Keys.Count;
 }

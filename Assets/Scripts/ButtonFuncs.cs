@@ -24,6 +24,8 @@ public partial class MainControl : MonoBehaviour
         await GenerateCaptionRows();
 
         Scroll2Top();
+
+        OnFilesLoaded();
     }
 
     public async void OnSave()
